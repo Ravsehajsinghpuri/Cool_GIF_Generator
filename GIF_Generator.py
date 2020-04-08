@@ -1,4 +1,4 @@
-# import necessary packages
+#----------------------------------------------import necessary packages----------------------------------------------------#
 from imutils import face_utils
 from imutils import paths
 import numpy as np 
@@ -24,20 +24,21 @@ def overlay_image(bg,fg,fgMask,coords):
 	alpha=np.dstack([alpha]*3)
 	output=alpha_blend(overlay,bg,alpha)
 	return output
-
+#--------------------------------Function for Alpha blending of images--------------------------------------------------#
 def alpha_blend(fg,bg,alpha):
-	# alpha blending is applied on images with type "float" rather than int so we convert
-	# each image into the required format
+	# alpha blending is applied on images with type "float" rather than int so we convert each image into the required format
 	fg=fg.astype("float")
 	bg=bg.astype("float")
 	alpha=alpha.astype("float")/255 # scaling alpha layer to the range [0,1]
 
 	#performing alpha-blending
+	
 	fg=cv2.multiply(alpha,fg)
 	bg=cv2.multiply(1-alpha,bg)
 
 	output=cv2.add(fg,bg)
 	return output.astype("uint8")
+#-----------------------------------Function for creating the actual GIF from input path of the input image----------------#
 
 def create_gif(inputPath,outputPath,delay,finalDelay,loop):
 	imagePaths=sorted(list(paths.list_images(inputPath)))
@@ -45,7 +46,7 @@ def create_gif(inputPath,outputPath,delay,finalDelay,loop):
 	imagePaths=imagePaths[:-1]
 	cmd="convert -delay {} {} -delay {} {} -loop {} {}".format(delay, " ".join(imagePaths), finalDelay,lastPath,loop,outputPath)
 	os.system(cmd)
-
+#--------------------------------------------Parsing command line arguments-------------------------------------------------#
 ap=argparse.ArgumentParser()
 ap.add_argument("-c", "--config",required=True, help="path to configuration file")
 ap.add_argument("-i","--image",required=True, help="Path to input image")
@@ -62,12 +63,13 @@ sgMask=cv2.imread(config["sunglasses_mask"])
 shutil.rmtree(config["temp_dir"],ignore_errors=True)
 os.makedirs(config["temp_dir"])
 
-print("[INFO] loading models.....")
-# Detector model for face detection in an image
+print("## [INFO] LOADING OUR MODEL .........")
+# Pre-trained model for detecting faces in an image 
+
 detector= cv2.dnn.readNetFromCaffe(config["face_detector_prototxt"],
             config["face_detector_weights"])
 
-# Detector model for detecting landmarks in an input image
+# Pre-trained model for detecting facial landmarks in an image using dlib library
 
 predictor= dlib.shape_predictor(config["landmark_predictor"]) # This predictor will help us predict the facial landmarks such as eyes,nose,mouth,jawline etc
 
@@ -80,13 +82,14 @@ image=cv2.imread(args["image"]) # Reading input image from argument
 #  Creating a blob to send through the neural network for face detection
 blob=cv2.dnn.blobFromImage(cv2.resize(image,(300,300)),1.0,(300,300),(104.0,177.0,123.0))
 
-print("[INFO] computing object detections....")
+print("## [INFO] computing object detections....")
 detector.setInput(blob) # Sending the constructed blob to the neural network
 detections= detector.forward()
 i=np.argmax(detections[0,0,:,2])
 confidence=detections[0,0,i,2]
 
-# filtering out weak detections
+# Here, we just filter out the weak detections
+
 if confidence<config["min_confidence"]:
 	print("[INFO] no reliable faces found")
 	sys.exit(0)
@@ -155,22 +158,11 @@ for(i,y) in enumerate(steps):
 
 # Now, all of the frames are written to the disk and now we can finally create our output GIF image
 
-print("[INFO] creating GIF...")
+print("## [INFO] Creating our cool GIF ......")
 create_gif(config["temp_dir"],args["output"],config["delay"],config["final_delay"],config["loop"])
 
-print("[INFO] cleaning up....")
+print("## [INFO] cleaning up temporary files ......")
 shutil.rmtree(config["temp_dir"],ignore_errors=True)
-
-
-
-
-
-
-
-
-
-
-
 
 
 
